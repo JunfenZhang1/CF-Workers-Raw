@@ -1,3 +1,19 @@
+# 本 fork 的用途与代码限制
+
+这是从 [cmliu/CF-Workers-Raw](https://github.com/cmliu/CF-Workers-Raw) fork 的 Cloudflare Workers 文件中转程序。它从 GitHub 读取原始文件，可用于取得私有仓库配置；它与订阅汇聚器 `CF-Workers-SUB`、网络隧道 `edgetunnel` 的用途不同。
+
+## 当前代码检查结果（2026-10-09）
+
+当前 `_worker.js` 在模块顶层定义了 `token`，并在多个请求间复用它。当 `GH_TOKEN` 与 `TOKEN` 同时设置时，访问密钥不匹配的分支仍通过 `|| token` 回退到已有值。因此，同一 Worker 实例此前成功处理过合法请求后，后续缺少密钥的请求可能沿用旧 GitHub 令牌。
+
+这说明下方原始文档中的访问控制介绍不能当作当前代码已经严格鉴权的保证。用于私有文件前，应将令牌处理限定在单次请求内，并对错误或缺失的访问密钥明确拒绝；本次只补充 README，尚未修改或运行 Worker。
+
+删除本 fork 前，应先确认 Cloudflare 项目和客户端是否仍依赖它；改用新网关时，需要先验证鉴权与私有文件访问。
+
+---
+
+## 上游原始说明
+
 # CF-Workers-Raw：轻松访问GitHub私有仓库
 这个项目允许你通过Cloudflare Workers安全地访问GitHub私有仓库中的原始文件，无需直接暴露你的GitHub令牌。
 ## 为什么需要这个工具？
@@ -46,7 +62,7 @@ https://raw.090227.xyz/cmliu/CF-Workers-Raw/main/_worker.js?token=mysecretkey
 ```url
 https://raw.090227.xyz/https://raw.githubusercontent.com/cmliu/CF-Workers-Raw/main/_worker.js?token=mysecretkey
 ```
-这种方法提供了双重安全：即使有人猜到了你的自定义密钥，他们仍然无法访问你的GitHub文件，因为GitHub令牌是安全地存储在Workers设置中的。
+这种配置将 GitHub 令牌保存在 Workers 环境中，客户端使用自定义访问密钥。访问密钥本身必须保密；当前代码的鉴权限制见文档顶部。
 
 ## 方法4：添加`GH_NAME`、`GH_REPO`、`GH_BRANCH`变量**隐藏GitHub路径信息**
 
@@ -99,7 +115,7 @@ GitHub个人访问令牌可以在GitHub设置中的"Developer settings" > "Perso
 # 变量说明
 | 变量名 | 示例 | 必填 | 备注 | 
 |--|--|--|--|
-| GH_TOKEN| `ghp_CgmlL2b5J8Z1soNUquc0bZblkbO3gKxhn13t`| ❌| 您的GitHub令牌 **token**|
+| GH_TOKEN| `<YOUR_GITHUB_TOKEN>`| ❌| 您的GitHub令牌 **token**|
 | TOKEN| `nicaibudaowo` | ❌| `GH_TOKEN`和`TOKEN`同时存在的时候会作为访问鉴权，单独赋值时的效果与`GH_TOKEN`相同|
 | GH_NAME| `cmliu` | ❌| 你的GitHub用户名 |
 | GH_REPO| `CF-Workers-Raw` | ❌| 你的GitHub仓库(必须设置`GH_NAME`变量为前提) |
